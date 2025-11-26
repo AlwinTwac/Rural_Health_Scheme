@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital Signs Recording Device</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .patients-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .patients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .patient-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .patient-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .patient-card.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .patient-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .patient-details {
+            font-size: 0.9em;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .patient-id {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .patient-card.selected .patient-id {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .vitals-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            display: none;
+        }
+
+        .vitals-section.active {
+            display: block;
+        }
+
+        .vitals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .vital-input {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+
+        .vital-input label {
+            display: block;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .vital-input input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 1.1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .vital-input input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .vital-input .unit {
+            font-size: 0.8em;
+            color: #6c757d;
+            margin-left: 5px;
+        }
+
+        .device-info {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .device-info input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .notes-section {
+            margin-bottom: 20px;
+        }
+
+        .notes-section textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .patients-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .vitals-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Vital Signs Recorder</h1>
+            <p>Select a patient and record their vital signs</p>
+        </div>
+
+        <div class="content">
+            <!-- Status Messages -->
+            <div id="statusMessage" class="status-message"></div>
+
+            <!-- Patients Section -->
+            <div class="patients-section">
+                <h2 class="section-title">📋 Select Patient</h2>
+                <div id="loadingPatients" class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading patients...</p>
+                </div>
+                <div id="patientsGrid" class="patients-grid" style="display: none;"></div>
+            </div>
+
+            <!-- Vitals Section -->
+            <div id="vitalsSection" class="vitals-section">
+                <h2 class="section-title">🩺 Record Vital Signs</h2>
+                
+                <div class="device-info">
+                    <label for="deviceName">Device Name:</label>
+                    <input type="text" id="deviceName" placeholder="Enter device identifier" value="external_device_001">
+                </div>
+
+                <div class="vitals-grid">
+                    <div class="vital-input">
+                        <label for="temperature">
+                            🌡️ Temperature<span class="unit">(°C)</span>
+                        </label>
+                        <input type="number" id="temperature" step="0.1" min="30" max="45" placeholder="37.0">
+                    </div>
+
+                    <div class="vital-input">
+                        <label for="heartRate">
+                            ❤️ Heart Rate<span class="unit">(bpm)</span>
+                        </label>
+                        <input type="number" id="heartRate" min="30" max="220" placeholder="72">
+                    </div>
+
+                    <div class="vital-input">
+                        <label for="bpSystolic">
+                            📊 Systolic BP<span class="unit">(mmHg)</span>
+                        </label>
+                        <input type="number" id="bpSystolic" min="60" max="250" placeholder="120">
+                    </div>
+
+                    <div class="vital-input">
+                        <label for="bpDiastolic">
+                            📊 Diastolic BP<span class="unit">(mmHg)</span>
+                        </label>
+                        <input type="number" id="bpDiastolic" min="30" max="150" placeholder="80">
+                    </div>
+                </div>
+
+                <div class="notes-section">
+                    <label for="notes">Notes (Optional):</label>
+                    <textarea id="notes" placeholder="Additional observations or notes..."></textarea>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+                    <button class="btn btn-primary" onclick="recordVitals()">📝 Record Vitals</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        let selectedPatient = null;
+        let patients = [];
+
+        // Load patients on page load
+        document.addEventListener('DOMContentLoaded', loadPatients);
+
+        async function loadPatients() {
+            try {
+                const response = await fetch(`${API_BASE}/patients/list`);
+                if (!response.ok) throw new Error('Failed to load patients');
+                
+                patients = await response.json();
+                displayPatients();
+            } catch (error) {
+                showStatus('Error loading patients: ' + error.message, 'error');
+            }
+        }
+
+        function displayPatients() {
+            const loading = document.getElementById('loadingPatients');
+            const grid = document.getElementById('patientsGrid');
+            
+            loading.style.display = 'none';
+            grid.style.display = 'grid';
+            grid.innerHTML = '';
+
+            patients.forEach(patient => {
+                const card = document.createElement('div');
+                card.className = 'patient-card';
+                card.onclick = () => selectPatient(patient);
+                
+                card.innerHTML = `
+                    <div class="patient-id">${patient.patientId}</div>
+                    <div class="patient-name">${patient.name}</div>
+                    <div class="patient-details">
+                        Age: ${patient.age}<br>
+                        Gender: ${patient.gender}<br>
+                        Household: ${patient.household}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function selectPatient(patient) {
+            // Remove previous selection
+            document.querySelectorAll('.patient-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            event.currentTarget.classList.add('selected');
+            
+            // Store selected patient
+            selectedPatient = patient;
+            
+            // Show vitals section
+            document.getElementById('vitalsSection').classList.add('active');
+            
+            // Clear any previous status messages
+            hideStatus();
+        }
+
+        async function recordVitals() {
+            if (!selectedPatient) {
+                showStatus('Please select a patient first', 'error');
+                return;
+            }
+
+            // Get form values
+            const temperature = document.getElementById('temperature').value;
+            const heartRate = document.getElementById('heartRate').value;
+            const bpSystolic = document.getElementById('bpSystolic').value;
+            const bpDiastolic = document.getElementById('bpDiastolic').value;
+            const deviceName = document.getElementById('deviceName').value;
+            const notes = document.getElementById('notes').value;
+
+            // Validation
+            if (!temperature && !heartRate && !bpSystolic && !bpDiastolic) {
+                showStatus('Please enter at least one vital sign measurement', 'error');
+                return;
+            }
+
+            if (!deviceName) {
+                showStatus('Please enter a device name', 'error');
+                return;
+            }
+
+            // Prepare data
+            const vitalData = {
+                patient_id: selectedPatient.patientId,
+                recorded_by: deviceName,
+                notes: notes || undefined
+            };
+
+            // Add only filled vital signs
+            if (temperature) vitalData.temperature = parseFloat(temperature);
+            if (heartRate) vitalData.heart_rate = parseInt(heartRate);
+            if (bpSystolic) vitalData.blood_pressure_systolic = parseInt(bpSystolic);
+            if (bpDiastolic) vitalData.blood_pressure_diastolic = parseInt(bpDiastolic);
+
+            try {
+                showStatus('Recording vital signs...', 'success');
+                
+                const response = await fetch(`${API_BASE}/vitals/record`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(vitalData)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(`✅ Vital signs recorded successfully for ${selectedPatient.name}!`, 'success');
+                    clearForm();
+                    
+                    // Optionally refresh patients data to show updated vitals
+                    setTimeout(() => {
+                        loadPatients();
+                    }, 1000);
+                } else {
+                    showStatus(`❌ Error: ${result.error || 'Failed to record vital signs'}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Network error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('temperature').value = '';
+            document.getElementById('heartRate').value = '';
+            document.getElementById('bpSystolic').value = '';
+            document.getElementById('bpDiastolic').value = '';
+            document.getElementById('notes').value = '';
+            hideStatus();
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.style.display = 'block';
+        }
+
+        function hideStatus() {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.style.display = 'none';
+        }
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                recordVitals();
+            }
+            if (e.key === 'Escape') {
+                clearForm();
+            }
+        });
+    </script>
+</body>
+</html>
