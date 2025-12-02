@@ -46,7 +46,8 @@ with app.app_context():
     init_database()
 
 # Import models
-from database_models import Household, Patient, MedicalRequest, VitalSignsHistory
+from database_models import Household, Patient, MedicalRequest, VitalSignsHistory, Notification
+from database_models import utc_to_zimbabwe  # Import timezone helper function
 
 # Health check
 @app.route('/api/health', methods=['GET'])
@@ -650,6 +651,118 @@ def add_doctor_comment(patient_id, vital_id):
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'Failed to add doctor comment'}), 500
+
+# ESP32 Doctor Comments API
+@app.route('/api/esp32/comments/<patient_id>', methods=['GET'])
+def esp32_get_doctor_comments(patient_id):
+    """ESP32 endpoint to fetch doctor comments for a specific patient"""
+    try:
+        print(f"ESP32 requesting comments for patient: {patient_id}")
+        
+        # Find patient by patient_id (string field)
+        patient = Patient.query.filter_by(patient_id=patient_id).first()
+        if not patient:
+            print(f"Patient not found: {patient_id}")
+            return jsonify({'error': 'Patient not found'}), 404
+        
+        print(f"Found patient: {patient.name}")
+        
+        # Get vital signs history with doctor comments
+        vitals_with_comments = VitalSignsHistory.query.filter_by(
+            patient_id=patient.id
+        ).filter(
+            VitalSignsHistory.doctor_comment.isnot(None)
+        ).order_by(
+            VitalSignsHistory.commented_at.desc()
+        ).limit(10).all()
+        
+        comments_data = []
+        for vital in vitals_with_comments:
+            comment_data = {
+                'comment': vital.doctor_comment,
+                'commentedBy': vital.commented_by,
+                'commentedAt': utc_to_zimbabwe(vital.commented_at).isoformat() if vital.commented_at else None,
+                'vitals': {
+                    'temperature': float(vital.temperature) if vital.temperature else None,
+                    'heartRate': vital.heart_rate,
+                    'bloodPressure': {
+                        'systolic': vital.blood_pressure_systolic,
+                        'diastolic': vital.blood_pressure_diastolic
+                    } if vital.blood_pressure_systolic and vital.blood_pressure_diastolic else None
+                },
+                'recordedAt': utc_to_zimbabwe(vital.recorded_at).isoformat() if vital.recorded_at else None
+            }
+            comments_data.append(comment_data)
+        
+        response_data = {
+            'patientId': patient.patient_id,
+            'patientName': patient.name,
+            'comments': comments_data,
+            'totalComments': len(comments_data),
+            'timestamp': datetime.now(zimbabwe_tz).isoformat()
+        }
+        
+        print(f"Returning {len(comments_data)} comments for {patient.name}")
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Error fetching doctor comments for ESP32: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Failed to fetch doctor comments'}), 500
+
+@app.route('/api/esp32/comments/latest/<patient_id>', methods=['GET'])
+def esp32_get_latest_comment(patient_id):
+    """ESP32 endpoint to fetch only the latest doctor comment for a patient"""
+    try:
+        print(f"ESP32 requesting latest comment for patient: {patient_id}")
+        
+        # Find patient by patient_id (string field)
+        patient = Patient.query.filter_by(patient_id=patient_id).first()
+        if not patient:
+            return jsonify({'error': 'Patient not found'}), 404
+        
+        # Get the most recent vital sign with doctor comment
+        latest_comment = VitalSignsHistory.query.filter_by(
+            patient_id=patient.id
+        ).filter(
+            VitalSignsHistory.doctor_comment.isnot(None)
+        ).order_by(
+            VitalSignsHistory.commented_at.desc()
+        ).first()
+        
+        if not latest_comment:
+            return jsonify({
+                'patientId': patient.patient_id,
+                'patientName': patient.name,
+                'hasComment': False,
+                'message': 'No doctor comments found'
+            })
+        
+        response_data = {
+            'patientId': patient.patient_id,
+            'patientName': patient.name,
+            'hasComment': True,
+            'comment': latest_comment.doctor_comment,
+            'commentedBy': latest_comment.commented_by,
+            'commentedAt': utc_to_zimbabwe(latest_comment.commented_at).isoformat() if latest_comment.commented_at else None,
+            'vitals': {
+                'temperature': float(latest_comment.temperature) if latest_comment.temperature else None,
+                'heartRate': latest_comment.heart_rate,
+                'bloodPressure': {
+                    'systolic': latest_comment.blood_pressure_systolic,
+                    'diastolic': latest_comment.blood_pressure_diastolic
+                } if latest_comment.blood_pressure_systolic and latest_comment.blood_pressure_diastolic else None
+            },
+            'timestamp': datetime.now(zimbabwe_tz).isoformat()
+        }
+        
+        print(f"Returning latest comment for {patient.name}: {latest_comment.commented_by}")
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Error fetching latest doctor comment for ESP32: {e}")
+        return jsonify({'error': 'Failed to fetch latest doctor comment'}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
